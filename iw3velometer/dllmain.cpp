@@ -46,7 +46,7 @@ struct iw3velometerConfig_s {
 
     bool showMaxVelocity = true;
     int fontSize = 60;
-    int loss_velocity = 30;
+    int lossVelocity = 30;
 	
     std::string selectedFont = "Arial";
 
@@ -72,12 +72,10 @@ int *keyConfig = nullptr;
 int prevFontSize = iw3velometerConfig.fontSize;
 std::string prevFont = iw3velometerConfig.selectedFont;
 
-int maxvel = 0;
-
-int prev_vel = 0;
-int vel_iteration = 0;
+int maxVel = 0;
+int prevVel = 0;
+int velIteration = 0;
 bool accel = false;
-
 bool showGui = false;
 bool showHud = true;
 bool HudDown = false;
@@ -101,8 +99,8 @@ bool setConfig()
     sprintf_s(str, "%d", iw3velometerConfig.fontSize);
     ini.SetValue("Config", "fontSize", str);
 
-    sprintf_s(str, "%d", iw3velometerConfig.loss_velocity);
-    ini.SetValue("Config", "loss_velocity", str);
+    sprintf_s(str, "%d", iw3velometerConfig.lossVelocity);
+    ini.SetValue("Config", "lossVelocity", str);
 
     sprintf_s(str, "%d", iw3velometerConfig.maxVelocityPos[0]);
     ini.SetValue("Config", "maxVelocityX", str);
@@ -226,24 +224,24 @@ HRESULT __stdcall hookedEndScene(IDirect3DDevice9* pDevice) {
 
     int vel = (int)sqrt((*x * *x) + (*y * *y));
 
-    if (vel > maxvel)
-        maxvel = vel;
+    if (vel > maxVel)
+        maxVel = vel;
 
-    vel_iteration++;
-    if (vel > prev_vel)
+    velIteration++;
+    if (vel > prevVel)
     {
-	accel = true;
-        prev_vel = vel;
+	    accel = true;
+        prevVel = vel;
     }
-    else if (vel_iteration >= iw3velometerConfig.loss_velocity)
+    else if (velIteration >= iw3velometerConfig.lossVelocity)
     {
-	accel = false;
-        prev_vel = vel;
-        vel_iteration = 0;
+	    accel = false;
+        prevVel = vel;
+        velIteration = 0;
     }
 
     str.str(std::string());
-    str << "(" << maxvel << ")";
+    str << "(" << maxVel << ")";
 
     if(iw3velometerConfig.showMaxVelocity && showHud)
         font->DrawText(NULL, str.str().c_str(), -1, &maxRectangle, DT_NOCLIP | DT_CENTER | DT_BOTTOM, D3DCOLOR_ARGB((int)(255 * iw3velometerConfig.maxVelocityColor[3]), (int)(255 * iw3velometerConfig.maxVelocityColor[0]), (int)(255 * iw3velometerConfig.maxVelocityColor[1]), (int)(255 * iw3velometerConfig.maxVelocityColor[2])));
@@ -252,13 +250,13 @@ HRESULT __stdcall hookedEndScene(IDirect3DDevice9* pDevice) {
     str << vel;
 
     if (showHud && (accel ||(!accel && !iw3velometerConfig.velocityLossCheck)))
-	font->DrawText(NULL, str.str().c_str(), -1, &veloRectangle, DT_NOCLIP | DT_CENTER | DT_BOTTOM, D3DCOLOR_ARGB((int)(255 * iw3velometerConfig.velocityGainColor[3]), (int)(255 * iw3velometerConfig.velocityGainColor[0]), (int)(255 * iw3velometerConfig.velocityGainColor[1]), (int)(255 * iw3velometerConfig.velocityGainColor[2])));
+	    font->DrawText(NULL, str.str().c_str(), -1, &veloRectangle, DT_NOCLIP | DT_CENTER | DT_BOTTOM, D3DCOLOR_ARGB((int)(255 * iw3velometerConfig.velocityGainColor[3]), (int)(255 * iw3velometerConfig.velocityGainColor[0]), (int)(255 * iw3velometerConfig.velocityGainColor[1]), (int)(255 * iw3velometerConfig.velocityGainColor[2])));
     else if (showHud && !accel && iw3velometerConfig.velocityLossCheck)
-	font->DrawText(NULL, str.str().c_str(), -1, &veloRectangle, DT_NOCLIP | DT_CENTER | DT_BOTTOM, D3DCOLOR_ARGB((int)(255 * iw3velometerConfig.velocityLossColor[3]), (int)(255 * iw3velometerConfig.velocityLossColor[0]), (int)(255 * iw3velometerConfig.velocityLossColor[1]), (int)(255 * iw3velometerConfig.velocityLossColor[2])));
+	    font->DrawText(NULL, str.str().c_str(), -1, &veloRectangle, DT_NOCLIP | DT_CENTER | DT_BOTTOM, D3DCOLOR_ARGB((int)(255 * iw3velometerConfig.velocityLossColor[3]), (int)(255 * iw3velometerConfig.velocityLossColor[0]), (int)(255 * iw3velometerConfig.velocityLossColor[1]), (int)(255 * iw3velometerConfig.velocityLossColor[2])));
 
     if (GetAsyncKeyState(iw3velometerConfig.resetKey) || (iw3velometerConfig.resetOnDeath && isAlive != *isAliveRead))
     {
-	maxvel = 0;
+	    maxVel = 0;
         isAlive = *isAliveRead;
     }
 
@@ -298,7 +296,7 @@ HRESULT __stdcall hookedEndScene(IDirect3DDevice9* pDevice) {
         ImGui::ColorEdit4("Max velocity color", iw3velometerConfig.maxVelocityColor);
         ImGui::ColorEdit4("Velocity gain color", iw3velometerConfig.velocityGainColor);
         ImGui::ColorEdit4("Velocity loss color", iw3velometerConfig.velocityLossColor);
-	ImGui::DragInt("Velocity loss delay", &iw3velometerConfig.loss_velocity,1.0f,1,1000);
+	    ImGui::DragInt("Velocity loss delay", &iw3velometerConfig.lossVelocity,1.0f,1,1000);
 
         char buffer[20];
 
@@ -337,10 +335,10 @@ HRESULT __stdcall hookedEndScene(IDirect3DDevice9* pDevice) {
         ImGui::Text("Toggle gui key");
 
         ImGui::Checkbox("Reset on death", &iw3velometerConfig.resetOnDeath);
-	ImGui::Checkbox("Show velocity loss", &iw3velometerConfig.velocityLossCheck);
+	    ImGui::Checkbox("Show velocity loss", &iw3velometerConfig.velocityLossCheck);
         
-	ImGui::NewLine();
-	ImGui::NewLine();
+	    ImGui::NewLine();
+	    ImGui::NewLine();
 	    
         if (ImGui::Button("Save configuration", ImVec2(150, 20)))
             setConfig();
@@ -429,8 +427,8 @@ bool getConfig()
     pv = ini.GetValue("Config", "font", "Arial");
     iw3velometerConfig.selectedFont = pv;
 	
-    pv = ini.GetValue("Config", "loss_velocity", "30");
-    iw3velometerConfig.loss_velocity = std::stoi(pv);
+    pv = ini.GetValue("Config", "lossVelocity", "30");
+    iw3velometerConfig.lossVelocity = std::stoi(pv);
 
     pv = ini.GetValue("Config", "maxVelocityX", "0");
     iw3velometerConfig.maxVelocityPos[0] = std::stoi(pv);
